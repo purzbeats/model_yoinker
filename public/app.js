@@ -243,6 +243,10 @@ createApp({
         }
         const response = await fetch(`/api/models/fetch-all?${params}`, { headers });
         if (!response.ok) {
+          if (response.status === 401) {
+            const data = await response.json();
+            throw new Error(data.error || 'API key required. Please add your CivitAI API key in Settings.');
+          }
           throw new Error(`HTTP ${response.status}`);
         }
 
@@ -608,6 +612,10 @@ createApp({
         const response = await fetch(`/api/models/single/${modelId}`, { headers });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            const data = await response.json();
+            throw new Error(data.error || 'API key required. Please add your CivitAI API key in Settings.');
+          }
           if (response.status === 404) {
             throw new Error('Model not found');
           }

@@ -4,8 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Model Scraper</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 </head>
 <body>
   <div id="app">
@@ -15,7 +16,7 @@
         <h2>Welcome to Model Scraper</h2>
         <p>To fetch models from CivitAI, you'll need an API key.</p>
 
-        <div class="modal-form">
+        <form class="modal-form" @submit.prevent="saveAndDismissPrompt">
           <label for="prompt-civitai-key">CivitAI API Key</label>
           <div class="input-with-toggle">
             <input
@@ -24,7 +25,7 @@
               v-model="settings.civitaiApiKey"
               placeholder="Enter your CivitAI API key"
               class="text-input"
-              @keyup.enter="saveAndDismissPrompt"
+              autocomplete="off"
             >
             <button @click="settings.showCivitaiKey = !settings.showCivitaiKey" class="toggle-visibility" type="button">
               {{ settings.showCivitaiKey ? 'Hide' : 'Show' }}
@@ -33,7 +34,7 @@
           <p class="settings-hint">
             Get your API key from <a href="https://civitai.com/user/account" target="_blank">civitai.com/user/account</a>
           </p>
-        </div>
+        </form>
 
         <div class="modal-actions">
           <button @click="saveAndDismissPrompt" class="btn-primary" :disabled="!settings.civitaiApiKey">Save & Continue</button>
@@ -532,7 +533,7 @@
             They are never stored on our servers.
           </p>
 
-          <div class="settings-form">
+          <form class="settings-form" @submit.prevent="saveSettings">
             <div class="settings-group">
               <label for="civitai-key">CivitAI API Key</label>
               <div class="input-with-toggle">
@@ -542,6 +543,7 @@
                   v-model="settings.civitaiApiKey"
                   placeholder="Enter your CivitAI API key"
                   class="text-input"
+                  autocomplete="off"
                 >
                 <button @click="settings.showCivitaiKey = !settings.showCivitaiKey" class="toggle-visibility" type="button">
                   {{ settings.showCivitaiKey ? 'Hide' : 'Show' }}
@@ -561,6 +563,7 @@
                   v-model="settings.huggingfaceToken"
                   placeholder="Enter your HuggingFace token (optional)"
                   class="text-input"
+                  autocomplete="off"
                 >
                 <button @click="settings.showHuggingfaceToken = !settings.showHuggingfaceToken" class="toggle-visibility" type="button">
                   {{ settings.showHuggingfaceToken ? 'Hide' : 'Show' }}
@@ -572,13 +575,13 @@
             </div>
 
             <div class="settings-actions">
-              <button @click="saveSettings" class="btn-primary">Save Settings</button>
-              <button @click="clearSettings" class="btn-secondary">Clear All</button>
+              <button type="submit" class="btn-primary">Save Settings</button>
+              <button type="button" @click="clearSettings" class="btn-secondary">Clear All</button>
               <span v-if="settings.saveMessage" class="save-message" :class="{ success: settings.saveSuccess }">
                 {{ settings.saveMessage }}
               </span>
             </div>
-          </div>
+          </form>
         </section>
       </div>
     </main>

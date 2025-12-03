@@ -20,15 +20,19 @@ router.get('/models/single/:id', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid model ID' });
     }
 
-    // Use API key from header first, fall back to env var
-    const apiKey = req.headers['x-civitai-api-key'] as string || process.env.CIVITAI_API_KEY;
+    // Use API key from header (user-provided)
+    const apiKey = req.headers['x-civitai-api-key'] as string;
+
+    if (!apiKey) {
+      return res.status(401).json({
+        error: 'CivitAI API key required. Please add your API key in Settings.'
+      });
+    }
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
     };
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
-    }
 
     const response = await fetch(`https://civitai.com/api/v1/models/${modelId}`, {
       headers,
@@ -52,8 +56,15 @@ router.get('/models/single/:id', async (req: Request, res: Response) => {
 // GET /api/models - Fetch models from CivitAI
 router.get('/models', async (req: Request, res: Response) => {
   try {
-    // Use API key from header first, fall back to env var
-    const apiKey = req.headers['x-civitai-api-key'] as string || process.env.CIVITAI_API_KEY;
+    // Use API key from header (user-provided)
+    const apiKey = req.headers['x-civitai-api-key'] as string;
+
+    if (!apiKey) {
+      return res.status(401).json({
+        error: 'CivitAI API key required. Please add your API key in Settings.'
+      });
+    }
+
     const client = new CivitAIClient(apiKey);
 
     const params: FetchModelsParams = {
@@ -90,8 +101,15 @@ router.get('/models', async (req: Request, res: Response) => {
 // GET /api/models/fetch-all - Fetch multiple pages
 router.get('/models/fetch-all', async (req: Request, res: Response) => {
   try {
-    // Use API key from header first, fall back to env var
-    const apiKey = req.headers['x-civitai-api-key'] as string || process.env.CIVITAI_API_KEY;
+    // Use API key from header (user-provided)
+    const apiKey = req.headers['x-civitai-api-key'] as string;
+
+    if (!apiKey) {
+      return res.status(401).json({
+        error: 'CivitAI API key required. Please add your API key in Settings.'
+      });
+    }
+
     const client = new CivitAIClient(apiKey);
 
     const params: FetchModelsParams = {

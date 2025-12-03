@@ -1,5 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { Parser } from 'json2csv';
+
+// Simple CSV converter (json2csv has ESM issues in serverless)
+function toCSV(data: Record<string, unknown>[]): string {
+  if (data.length === 0) return '';
+  const headers = Object.keys(data[0]);
+  const csvRows = [headers.join(',')];
+  for (const row of data) {
+    const values = headers.map(h => {
+      const val = row[h];
+      const str = val === null || val === undefined ? '' : String(val);
+      // Escape quotes and wrap in quotes if contains comma, quote, or newline
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    });
+    csvRows.push(values.join(','));
+  }
+  return csvRows.join('\n');
+}
 
 // ==================== Types ====================
 interface CivitAIModel {
@@ -251,8 +270,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             url: `https://civitai.com/models/${model.id}`,
           };
         });
-        const parser = new Parser();
-        const csv = parser.parse(flattened);
+        const csv = toCSV(flattened);
 
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', `attachment; filename=models_${timestamp}.csv`);
@@ -366,8 +384,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           tags: m.tags.join(', '),
           url: `https://huggingface.co/${m.id}`,
         }));
-        const parser = new Parser();
-        const csv = parser.parse(flattened);
+        const csv = toCSV(flattened);
 
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', `attachment; filename=hf_models_${timestamp}.csv`);

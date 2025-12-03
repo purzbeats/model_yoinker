@@ -9,12 +9,46 @@
 </head>
 <body>
   <div id="app">
+    <!-- API Key Prompt Modal -->
+    <div v-if="showApiKeyPrompt" class="modal-overlay" @click.self="dismissApiKeyPrompt">
+      <div class="modal">
+        <h2>Welcome to Model Scraper</h2>
+        <p>To fetch models from CivitAI, you'll need an API key.</p>
+
+        <div class="modal-form">
+          <label for="prompt-civitai-key">CivitAI API Key</label>
+          <div class="input-with-toggle">
+            <input
+              :type="settings.showCivitaiKey ? 'text' : 'password'"
+              id="prompt-civitai-key"
+              v-model="settings.civitaiApiKey"
+              placeholder="Enter your CivitAI API key"
+              class="text-input"
+              @keyup.enter="saveAndDismissPrompt"
+            >
+            <button @click="settings.showCivitaiKey = !settings.showCivitaiKey" class="toggle-visibility" type="button">
+              {{ settings.showCivitaiKey ? 'Hide' : 'Show' }}
+            </button>
+          </div>
+          <p class="settings-hint">
+            Get your API key from <a href="https://civitai.com/user/account" target="_blank">civitai.com/user/account</a>
+          </p>
+        </div>
+
+        <div class="modal-actions">
+          <button @click="saveAndDismissPrompt" class="btn-primary" :disabled="!settings.civitaiApiKey">Save & Continue</button>
+          <button @click="dismissApiKeyPrompt" class="btn-secondary">Skip for now</button>
+        </div>
+      </div>
+    </div>
+
     <header>
       <h1>Model Scraper</h1>
       <nav class="tabs">
         <button :class="{ active: activeTab === 'civitai' }" @click="activeTab = 'civitai'">CivitAI</button>
         <button :class="{ active: activeTab === 'huggingface' }" @click="activeTab = 'huggingface'">HuggingFace</button>
         <button :class="{ active: activeTab === 'single' }" @click="activeTab = 'single'">Single Model</button>
+        <button :class="{ active: activeTab === 'settings' }" @click="activeTab = 'settings'" class="settings-tab">Settings</button>
       </nav>
     </header>
 
@@ -486,6 +520,65 @@
 
         <section v-else-if="!single.loading" class="empty-state">
           <p>Paste a CivitAI model URL or ID above to view its details.</p>
+        </section>
+      </div>
+
+      <!-- Settings Tab -->
+      <div v-show="activeTab === 'settings'">
+        <section class="settings-panel">
+          <h2>API Settings</h2>
+          <p class="settings-description">
+            Your API keys are stored locally in your browser and are sent directly to the respective APIs.
+            They are never stored on our servers.
+          </p>
+
+          <div class="settings-form">
+            <div class="settings-group">
+              <label for="civitai-key">CivitAI API Key</label>
+              <div class="input-with-toggle">
+                <input
+                  :type="settings.showCivitaiKey ? 'text' : 'password'"
+                  id="civitai-key"
+                  v-model="settings.civitaiApiKey"
+                  placeholder="Enter your CivitAI API key"
+                  class="text-input"
+                >
+                <button @click="settings.showCivitaiKey = !settings.showCivitaiKey" class="toggle-visibility" type="button">
+                  {{ settings.showCivitaiKey ? 'Hide' : 'Show' }}
+                </button>
+              </div>
+              <p class="settings-hint">
+                Get your API key from <a href="https://civitai.com/user/account" target="_blank">civitai.com/user/account</a>
+              </p>
+            </div>
+
+            <div class="settings-group">
+              <label for="huggingface-token">HuggingFace Token</label>
+              <div class="input-with-toggle">
+                <input
+                  :type="settings.showHuggingfaceToken ? 'text' : 'password'"
+                  id="huggingface-token"
+                  v-model="settings.huggingfaceToken"
+                  placeholder="Enter your HuggingFace token (optional)"
+                  class="text-input"
+                >
+                <button @click="settings.showHuggingfaceToken = !settings.showHuggingfaceToken" class="toggle-visibility" type="button">
+                  {{ settings.showHuggingfaceToken ? 'Hide' : 'Show' }}
+                </button>
+              </div>
+              <p class="settings-hint">
+                Get your token from <a href="https://huggingface.co/settings/tokens" target="_blank">huggingface.co/settings/tokens</a>
+              </p>
+            </div>
+
+            <div class="settings-actions">
+              <button @click="saveSettings" class="btn-primary">Save Settings</button>
+              <button @click="clearSettings" class="btn-secondary">Clear All</button>
+              <span v-if="settings.saveMessage" class="save-message" :class="{ success: settings.saveSuccess }">
+                {{ settings.saveMessage }}
+              </span>
+            </div>
+          </div>
         </section>
       </div>
     </main>

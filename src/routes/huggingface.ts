@@ -68,7 +68,9 @@ const architectureSearchMap: Record<string, string> = {
 // GET /api/huggingface/models - Fetch models from HuggingFace
 router.get('/models', async (req: Request, res: Response) => {
   try {
-    const client = new HuggingFaceClient(process.env.HUGGINGFACE_TOKEN);
+    // Use token from header first, fall back to env var
+    const token = req.headers['x-huggingface-token'] as string || process.env.HUGGINGFACE_TOKEN;
+    const client = new HuggingFaceClient(token);
 
     const params: FetchHFModelsParams = {
       sort: (req.query.sort as FetchHFModelsParams['sort']) || 'downloads',

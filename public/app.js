@@ -33,6 +33,79 @@ createApp({
       error: '',
     });
 
+    // ==================== Settings State ====================
+    const settings = ref({
+      civitaiApiKey: '',
+      huggingfaceToken: '',
+      showCivitaiKey: false,
+      showHuggingfaceToken: false,
+      saveMessage: '',
+      saveSuccess: false,
+    });
+
+    // Show API key prompt if no key saved
+    const showApiKeyPrompt = ref(false);
+
+    // Load settings from localStorage on init
+    function loadSettings() {
+      try {
+        const saved = localStorage.getItem('modelYoinkerSettings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          settings.value.civitaiApiKey = parsed.civitaiApiKey || '';
+          settings.value.huggingfaceToken = parsed.huggingfaceToken || '';
+        }
+      } catch (e) {
+        console.error('Failed to load settings:', e);
+      }
+    }
+
+    function saveSettings() {
+      try {
+        localStorage.setItem('modelYoinkerSettings', JSON.stringify({
+          civitaiApiKey: settings.value.civitaiApiKey,
+          huggingfaceToken: settings.value.huggingfaceToken,
+        }));
+        settings.value.saveMessage = 'Settings saved!';
+        settings.value.saveSuccess = true;
+        setTimeout(() => {
+          settings.value.saveMessage = '';
+        }, 3000);
+      } catch (e) {
+        settings.value.saveMessage = 'Failed to save settings';
+        settings.value.saveSuccess = false;
+        console.error('Failed to save settings:', e);
+      }
+    }
+
+    function clearSettings() {
+      settings.value.civitaiApiKey = '';
+      settings.value.huggingfaceToken = '';
+      localStorage.removeItem('modelYoinkerSettings');
+      settings.value.saveMessage = 'Settings cleared';
+      settings.value.saveSuccess = true;
+      setTimeout(() => {
+        settings.value.saveMessage = '';
+      }, 3000);
+    }
+
+    // Load settings immediately and check if we need to prompt
+    loadSettings();
+
+    // Show prompt if no CivitAI API key is saved
+    if (!settings.value.civitaiApiKey) {
+      showApiKeyPrompt.value = true;
+    }
+
+    function saveAndDismissPrompt() {
+      saveSettings();
+      showApiKeyPrompt.value = false;
+    }
+
+    function dismissApiKeyPrompt() {
+      showApiKeyPrompt.value = false;
+    }
+
     // ==================== HuggingFace State ====================
     const huggingface = ref({
       models: [],
@@ -164,7 +237,11 @@ createApp({
           params.set('nsfw', 'false');
         }
 
-        const response = await fetch(`/api/models/fetch-all?${params}`);
+        const headers = {};
+        if (settings.value.civitaiApiKey) {
+          headers['X-CivitAI-Api-Key'] = settings.value.civitaiApiKey;
+        }
+        const response = await fetch(`/api/models/fetch-all?${params}`, { headers });
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -274,7 +351,11 @@ createApp({
           params.set('fetchFiles', 'true');
         }
 
-        const response = await fetch(`/api/huggingface/models?${params}`);
+        const headers = {};
+        if (settings.value.huggingfaceToken) {
+          headers['X-HuggingFace-Token'] = settings.value.huggingfaceToken;
+        }
+        const response = await fetch(`/api/huggingface/models?${params}`, { headers });
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -520,7 +601,11 @@ createApp({
       single.value.selectedVersionId = null;
 
       try {
-        const response = await fetch(`/api/models/single/${modelId}`);
+        const headers = {};
+        if (settings.value.civitaiApiKey) {
+          headers['X-CivitAI-Api-Key'] = settings.value.civitaiApiKey;
+        }
+        const response = await fetch(`/api/models/single/${modelId}`, { headers });
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -740,6 +825,14 @@ createApp({
       // Shared utilities
       formatNumber,
       formatRating,
+
+      // Settings
+      settings,
+      saveSettings,
+      clearSettings,
+      showApiKeyPrompt,
+      saveAndDismissPrompt,
+      dismissApiKeyPrompt,
     };
   },
 }).mount('#app');

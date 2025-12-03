@@ -20,11 +20,14 @@ router.get('/models/single/:id', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid model ID' });
     }
 
+    // Use API key from header first, fall back to env var
+    const apiKey = req.headers['x-civitai-api-key'] as string || process.env.CIVITAI_API_KEY;
+
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
-    if (process.env.CIVITAI_API_KEY) {
-      headers['Authorization'] = `Bearer ${process.env.CIVITAI_API_KEY}`;
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
     const response = await fetch(`https://civitai.com/api/v1/models/${modelId}`, {
@@ -49,7 +52,9 @@ router.get('/models/single/:id', async (req: Request, res: Response) => {
 // GET /api/models - Fetch models from CivitAI
 router.get('/models', async (req: Request, res: Response) => {
   try {
-    const client = new CivitAIClient(process.env.CIVITAI_API_KEY);
+    // Use API key from header first, fall back to env var
+    const apiKey = req.headers['x-civitai-api-key'] as string || process.env.CIVITAI_API_KEY;
+    const client = new CivitAIClient(apiKey);
 
     const params: FetchModelsParams = {
       limit: Math.min(parseInt(req.query.limit as string) || 100, 100),
@@ -85,7 +90,9 @@ router.get('/models', async (req: Request, res: Response) => {
 // GET /api/models/fetch-all - Fetch multiple pages
 router.get('/models/fetch-all', async (req: Request, res: Response) => {
   try {
-    const client = new CivitAIClient(process.env.CIVITAI_API_KEY);
+    // Use API key from header first, fall back to env var
+    const apiKey = req.headers['x-civitai-api-key'] as string || process.env.CIVITAI_API_KEY;
+    const client = new CivitAIClient(apiKey);
 
     const params: FetchModelsParams = {
       sort: (req.query.sort as FetchModelsParams['sort']) || 'Most Downloaded',

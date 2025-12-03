@@ -22,9 +22,14 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use('/api', modelsRouter);
 app.use('/api/huggingface', huggingfaceRouter);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-  console.log(`CivitAI API Key: ${process.env.CIVITAI_API_KEY ? 'Yes' : 'No'}`);
-  console.log(`HuggingFace Token: ${process.env.HUGGINGFACE_TOKEN ? 'Yes' : 'No (optional)'}`);
-});
+// Start server (only in non-serverless environment)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`CivitAI API Key: ${process.env.CIVITAI_API_KEY ? 'Yes' : 'No'}`);
+    console.log(`HuggingFace Token: ${process.env.HUGGINGFACE_TOKEN ? 'Yes' : 'No (optional)'}`);
+  });
+}
+
+// Export for Vercel serverless
+export default app;

@@ -1,6 +1,7 @@
 {
   "name": "civit-scraper",
   "version": "1.0.0",
+  "type": "module",
   "description": "Web app to fetch and browse CivitAI model metadata",
   "main": "src/server.ts",
   "scripts": {

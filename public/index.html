@@ -49,6 +49,7 @@
         <button :class="{ active: activeTab === 'civitai' }" @click="activeTab = 'civitai'">CivitAI</button>
         <button :class="{ active: activeTab === 'huggingface' }" @click="activeTab = 'huggingface'">HuggingFace</button>
         <button :class="{ active: activeTab === 'single' }" @click="activeTab = 'single'">Single Model</button>
+        <button :class="{ active: activeTab === 'mymodels' }" @click="activeTab = 'mymodels'">My Models</button>
         <button :class="{ active: activeTab === 'settings' }" @click="activeTab = 'settings'" class="settings-tab">Settings</button>
       </nav>
     </header>
@@ -522,6 +523,210 @@
         <section v-else-if="!single.loading" class="empty-state">
           <p>Paste a CivitAI model URL or ID above to view its details.</p>
         </section>
+      </div>
+
+      <!-- My Models Tab -->
+      <div v-show="activeTab === 'mymodels'">
+        <!-- File Upload Section -->
+        <section class="filters">
+          <div class="filter-group" style="flex: 1;">
+            <label>Load JSON File</label>
+            <div class="file-upload-wrapper">
+              <input
+                type="file"
+                id="json-file-input"
+                accept=".json"
+                @change="handleFileUpload"
+                class="file-input"
+              >
+              <label for="json-file-input" class="file-upload-label">
+                <span v-if="!mymodels.fileName">Choose supported_models.json file...</span>
+                <span v-else>{{ mymodels.fileName }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label>Filter by Directory</label>
+            <select v-model="mymodels.filters.directory">
+              <option value="">All Directories</option>
+              <option v-for="dir in mymodelsDirectories" :key="dir" :value="dir">{{ dir }}</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Search</label>
+            <input type="text" v-model="mymodels.filters.search" placeholder="Search model names..." class="text-input">
+          </div>
+
+          <button @click="clearMyModels" :disabled="mymodels.models.length === 0" class="btn-secondary">
+            Clear
+          </button>
+        </section>
+
+        <!-- Status -->
+        <div v-if="mymodels.error" class="error">{{ mymodels.error }}</div>
+
+        <!-- Results -->
+        <section v-if="mymodels.models.length > 0" class="results">
+          <div class="results-header">
+            <h2>Models ({{ mymodelsFilteredModels.length }} of {{ mymodels.models.length }})</h2>
+            <div class="export-buttons">
+              <button @click="selectAllMyModels" class="btn-secondary">
+                {{ mymodelsAllSelected ? 'Deselect All' : 'Select All' }}
+              </button>
+              <button @click="openBulkEditModal" :disabled="mymodels.selectedIndices.length === 0" class="btn-primary">
+                Edit Selected ({{ mymodels.selectedIndices.length }})
+              </button>
+              <button @click="exportMyModels" :disabled="mymodels.models.length === 0" class="btn-secondary">
+                Export JSON
+              </button>
+            </div>
+          </div>
+
+          <table class="models-table mymodels-table">
+            <thead>
+              <tr>
+                <th class="col-select">
+                  <input type="checkbox" :checked="mymodelsAllSelected" @change="selectAllMyModels">
+                </th>
+                <th class="col-thumb">Preview</th>
+                <th class="col-name sortable" @click="sortMyModels('model_name')">
+                  Model Name <span class="sort-icon">{{ getMyModelsSortIcon('model_name') }}</span>
+                </th>
+                <th class="col-directory sortable" @click="sortMyModels('directory')">
+                  Directory <span class="sort-icon">{{ getMyModelsSortIcon('directory') }}</span>
+                </th>
+                <th class="col-url">URL</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(model, index) in mymodelsSortedModels"
+                :key="model._index"
+                :class="{ selected: mymodels.selectedIndices.includes(model._index) }"
+              >
+                <td>
+                  <input type="checkbox" :value="model._index" v-model="mymodels.selectedIndices">
+                </td>
+                <td class="col-thumb">
+                  <img
+                    v-if="model.preview_url && !model.preview_url.includes('drive.google.com')"
+                    :src="model.preview_url"
+                    :alt="model.model_name"
+                    loading="lazy"
+                    @error="$event.target.style.display='none'"
+                  >
+                  <div v-else-if="model.preview_url" class="preview-link" :title="model.preview_url">
+                    <a :href="model.preview_url" target="_blank" class="gdrive-link">GDrive</a>
+                  </div>
+                  <div v-else class="no-thumb">No preview</div>
+                </td>
+                <td class="col-name">
+                  <span class="model-filename">{{ model.model_name }}</span>
+                </td>
+                <td class="col-directory">
+                  <span class="directory-badge">{{ model.directory }}</span>
+                </td>
+                <td class="col-url">
+                  <span v-if="model.url === 'SKIP'" class="url-skip">SKIP</span>
+                  <a v-else :href="model.url" target="_blank" class="url-link" :title="model.url">
+                    {{ truncateUrl(model.url) }}
+                  </a>
+                </td>
+                <td class="col-actions">
+                  <button @click="openEditModal(model._index)" class="btn-icon" title="Edit">
+                    <span>Edit</span>
+                  </button>
+                  <button @click="deleteModel(model._index)" class="btn-icon btn-danger" title="Delete">
+                    <span>Del</span>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section v-else class="empty-state">
+          <p>No models loaded. Upload a supported_models.json file to get started.</p>
+          <p class="empty-state-hint">You can export models from CivitAI or HuggingFace tabs, then edit them here.</p>
+        </section>
+
+        <!-- Edit Modal -->
+        <div v-if="mymodels.showEditModal" class="modal-overlay" @click.self="closeEditModal">
+          <div class="modal edit-modal">
+            <h2>{{ mymodels.bulkEdit ? 'Bulk Edit' : 'Edit Model' }}</h2>
+            <p v-if="mymodels.bulkEdit" class="modal-subtitle">
+              Editing {{ mymodels.selectedIndices.length }} models. Leave fields empty to keep existing values.
+            </p>
+
+            <form class="modal-form" @submit.prevent="saveEdit">
+              <div class="settings-group" v-if="!mymodels.bulkEdit">
+                <label for="edit-model-name">Model Name</label>
+                <input
+                  type="text"
+                  id="edit-model-name"
+                  v-model="mymodels.editForm.model_name"
+                  class="text-input"
+                  placeholder="filename.safetensors"
+                >
+              </div>
+
+              <div class="settings-group">
+                <label for="edit-directory">Directory</label>
+                <select id="edit-directory" v-model="mymodels.editForm.directory" class="text-input">
+                  <option value="">{{ mymodels.bulkEdit ? '-- Keep existing --' : 'Select directory' }}</option>
+                  <option value="checkpoints">checkpoints</option>
+                  <option value="loras">loras</option>
+                  <option value="embeddings">embeddings</option>
+                  <option value="vae">vae</option>
+                  <option value="controlnet">controlnet</option>
+                  <option value="clip">clip</option>
+                  <option value="clip_vision">clip_vision</option>
+                  <option value="diffusion_models">diffusion_models</option>
+                  <option value="text_encoders">text_encoders</option>
+                  <option value="unet">unet</option>
+                  <option value="upscale_models">upscale_models</option>
+                  <option value="hypernetworks">hypernetworks</option>
+                  <option value="style_models">style_models</option>
+                </select>
+              </div>
+
+              <div class="settings-group" v-if="!mymodels.bulkEdit">
+                <label for="edit-url">URL</label>
+                <input
+                  type="text"
+                  id="edit-url"
+                  v-model="mymodels.editForm.url"
+                  class="text-input"
+                  placeholder="https://... or SKIP"
+                >
+              </div>
+
+              <div class="settings-group">
+                <label for="edit-preview-url">Preview URL</label>
+                <input
+                  type="text"
+                  id="edit-preview-url"
+                  v-model="mymodels.editForm.preview_url"
+                  class="text-input"
+                  :placeholder="mymodels.bulkEdit ? '-- Keep existing or enter new URL --' : 'https://...'"
+                >
+                <p class="settings-hint" v-if="mymodels.bulkEdit">
+                  Tip: Use placeholders like <code>{directory}</code> or <code>{model_name}</code>
+                </p>
+              </div>
+
+              <div class="modal-actions">
+                <button type="submit" class="btn-primary">
+                  {{ mymodels.bulkEdit ? 'Apply to Selected' : 'Save' }}
+                </button>
+                <button type="button" @click="closeEditModal" class="btn-secondary">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
 
       <!-- Settings Tab -->

@@ -106,6 +106,29 @@ createApp({
       showApiKeyPrompt.value = false;
     }
 
+    // ==================== My Models State ====================
+    const mymodels = ref({
+      models: [],
+      selectedIndices: [],
+      fileName: '',
+      error: '',
+      filters: {
+        directory: '',
+        search: '',
+      },
+      sortColumn: 'model_name',
+      sortDirection: 'asc',
+      showEditModal: false,
+      bulkEdit: false,
+      editingIndex: null,
+      editForm: {
+        model_name: '',
+        directory: '',
+        url: '',
+        preview_url: '',
+      },
+    });
+
     // ==================== HuggingFace State ====================
     const huggingface = ref({
       models: [],
@@ -213,6 +236,64 @@ createApp({
         if (aVal > bVal) return huggingface.value.sortDirection === 'asc' ? 1 : -1;
         return 0;
       });
+    });
+
+    // ==================== My Models Computed ====================
+    const mymodelsDirectories = computed(() => {
+      const dirs = new Set();
+      mymodels.value.models.forEach((m) => {
+        if (m.directory) dirs.add(m.directory);
+      });
+      return Array.from(dirs).sort();
+    });
+
+    const mymodelsFilteredModels = computed(() => {
+      let filtered = mymodels.value.models.map((m, i) => ({ ...m, _index: i }));
+
+      if (mymodels.value.filters.directory) {
+        filtered = filtered.filter((m) => m.directory === mymodels.value.filters.directory);
+      }
+
+      if (mymodels.value.filters.search) {
+        const search = mymodels.value.filters.search.toLowerCase();
+        filtered = filtered.filter((m) =>
+          m.model_name?.toLowerCase().includes(search) ||
+          m.url?.toLowerCase().includes(search)
+        );
+      }
+
+      return filtered;
+    });
+
+    const mymodelsSortedModels = computed(() => {
+      if (!mymodelsFilteredModels.value.length) return [];
+
+      return [...mymodelsFilteredModels.value].sort((a, b) => {
+        let aVal, bVal;
+
+        switch (mymodels.value.sortColumn) {
+          case 'model_name':
+            aVal = a.model_name?.toLowerCase() || '';
+            bVal = b.model_name?.toLowerCase() || '';
+            break;
+          case 'directory':
+            aVal = a.directory?.toLowerCase() || '';
+            bVal = b.directory?.toLowerCase() || '';
+            break;
+          default:
+            return 0;
+        }
+
+        if (aVal < bVal) return mymodels.value.sortDirection === 'asc' ? -1 : 1;
+        if (aVal > bVal) return mymodels.value.sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    });
+
+    const mymodelsAllSelected = computed(() => {
+      if (mymodelsFilteredModels.value.length === 0) return false;
+      const filteredIndices = mymodelsFilteredModels.value.map((m) => m._index);
+      return filteredIndices.every((i) => mymodels.value.selectedIndices.includes(i));
     });
 
     // ==================== CivitAI Methods ====================
@@ -552,6 +633,193 @@ createApp({
       return 'Other';
     }
 
+    // ==================== My Models Methods ====================
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      mymodels.value.error = '';
+      mymodels.value.fileName = file.name;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.models && Array.isArray(data.models)) {
+            mymodels.value.models = data.models;
+            mymodels.value.selectedIndices = [];
+          } else if (Array.isArray(data)) {
+            mymodels.value.models = data;
+            mymodels.value.selectedIndices = [];
+          } else {
+            throw new Error('Invalid JSON structure. Expected { models: [...] } or an array.');
+          }
+        } catch (err) {
+          mymodels.value.error = `Failed to parse JSON: ${err.message}`;
+          mymodels.value.models = [];
+        }
+      };
+      reader.onerror = () => {
+        mymodels.value.error = 'Failed to read file';
+      };
+      reader.readAsText(file);
+    }
+
+    function clearMyModels() {
+      mymodels.value.models = [];
+      mymodels.value.selectedIndices = [];
+      mymodels.value.fileName = '';
+      mymodels.value.error = '';
+      mymodels.value.filters.directory = '';
+      mymodels.value.filters.search = '';
+      // Reset file input
+      const fileInput = document.getElementById('json-file-input');
+      if (fileInput) fileInput.value = '';
+    }
+
+    function selectAllMyModels() {
+      if (mymodelsAllSelected.value) {
+        // Deselect all filtered items
+        const filteredIndices = mymodelsFilteredModels.value.map((m) => m._index);
+        mymodels.value.selectedIndices = mymodels.value.selectedIndices.filter(
+          (i) => !filteredIndices.includes(i)
+        );
+      } else {
+        // Select all filtered items
+        const filteredIndices = mymodelsFilteredModels.value.map((m) => m._index);
+        const existing = new Set(mymodels.value.selectedIndices);
+        filteredIndices.forEach((i) => existing.add(i));
+        mymodels.value.selectedIndices = Array.from(existing);
+      }
+    }
+
+    function sortMyModels(column) {
+      if (mymodels.value.sortColumn === column) {
+        mymodels.value.sortDirection = mymodels.value.sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        mymodels.value.sortColumn = column;
+        mymodels.value.sortDirection = 'asc';
+      }
+    }
+
+    function getMyModelsSortIcon(column) {
+      if (mymodels.value.sortColumn !== column) return '';
+      return mymodels.value.sortDirection === 'asc' ? '▲' : '▼';
+    }
+
+    function truncateUrl(url) {
+      if (!url) return '';
+      if (url.length <= 50) return url;
+      // Show domain and truncated path
+      try {
+        const parsed = new URL(url);
+        const domain = parsed.hostname;
+        const path = parsed.pathname;
+        if (path.length > 30) {
+          return `${domain}${path.substring(0, 27)}...`;
+        }
+        return `${domain}${path}`;
+      } catch {
+        return url.substring(0, 47) + '...';
+      }
+    }
+
+    function openEditModal(index) {
+      const model = mymodels.value.models[index];
+      mymodels.value.editingIndex = index;
+      mymodels.value.bulkEdit = false;
+      mymodels.value.editForm = {
+        model_name: model.model_name || '',
+        directory: model.directory || '',
+        url: model.url || '',
+        preview_url: model.preview_url || '',
+      };
+      mymodels.value.showEditModal = true;
+    }
+
+    function openBulkEditModal() {
+      mymodels.value.bulkEdit = true;
+      mymodels.value.editingIndex = null;
+      mymodels.value.editForm = {
+        model_name: '',
+        directory: '',
+        url: '',
+        preview_url: '',
+      };
+      mymodels.value.showEditModal = true;
+    }
+
+    function closeEditModal() {
+      mymodels.value.showEditModal = false;
+      mymodels.value.bulkEdit = false;
+      mymodels.value.editingIndex = null;
+    }
+
+    function saveEdit() {
+      if (mymodels.value.bulkEdit) {
+        // Apply changes to all selected models
+        const form = mymodels.value.editForm;
+        mymodels.value.selectedIndices.forEach((index) => {
+          const model = mymodels.value.models[index];
+
+          if (form.directory) {
+            model.directory = form.directory;
+          }
+
+          if (form.preview_url) {
+            // Support placeholders
+            let previewUrl = form.preview_url;
+            previewUrl = previewUrl.replace('{directory}', model.directory || '');
+            previewUrl = previewUrl.replace('{model_name}', model.model_name || '');
+            model.preview_url = previewUrl;
+          }
+        });
+      } else {
+        // Single model edit
+        const index = mymodels.value.editingIndex;
+        if (index !== null) {
+          const form = mymodels.value.editForm;
+          mymodels.value.models[index] = {
+            ...mymodels.value.models[index],
+            model_name: form.model_name,
+            directory: form.directory,
+            url: form.url,
+            preview_url: form.preview_url,
+          };
+        }
+      }
+
+      closeEditModal();
+    }
+
+    function deleteModel(index) {
+      if (confirm('Are you sure you want to delete this model?')) {
+        mymodels.value.models.splice(index, 1);
+        // Update selected indices
+        mymodels.value.selectedIndices = mymodels.value.selectedIndices
+          .filter((i) => i !== index)
+          .map((i) => (i > index ? i - 1 : i));
+      }
+    }
+
+    function exportMyModels() {
+      const output = {
+        models: mymodels.value.models,
+      };
+
+      const jsonString = JSON.stringify(output, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = mymodels.value.fileName || 'supported_models.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
     function countSafetensors(model) {
       if (!model.siblings) return 0;
       return model.siblings.filter((f) => f.rfilename?.endsWith('.safetensors')).length;
@@ -829,6 +1097,25 @@ createApp({
       copySingleModelExport,
       formatDate,
       formatFileSize,
+
+      // My Models
+      mymodels,
+      mymodelsDirectories,
+      mymodelsFilteredModels,
+      mymodelsSortedModels,
+      mymodelsAllSelected,
+      handleFileUpload,
+      clearMyModels,
+      selectAllMyModels,
+      sortMyModels,
+      getMyModelsSortIcon,
+      truncateUrl,
+      openEditModal,
+      openBulkEditModal,
+      closeEditModal,
+      saveEdit,
+      deleteModel,
+      exportMyModels,
 
       // Shared utilities
       formatNumber,

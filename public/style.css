@@ -718,6 +718,177 @@ main {
   color: #4caf50;
 }
 
+/* My Models Tab */
+.file-upload-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.file-upload-label {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #1a1a2e;
+  border: 1px dashed #0f3460;
+  border-radius: 4px;
+  color: #888;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 280px;
+}
+
+.file-upload-label:hover {
+  border-color: #e94560;
+  color: #eee;
+}
+
+.mymodels-table .col-name {
+  max-width: 300px;
+}
+
+.model-filename {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.directory-badge {
+  display: inline-block;
+  background: #1a3a5c;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.col-url {
+  max-width: 200px;
+}
+
+.url-link {
+  color: #4fc3f7;
+  text-decoration: none;
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.url-link:hover {
+  text-decoration: underline;
+}
+
+.url-skip {
+  color: #888;
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+.col-actions {
+  white-space: nowrap;
+}
+
+.btn-icon {
+  background: #0f3460;
+  color: #eee;
+  border: none;
+  padding: 0.3rem 0.6rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  margin-right: 0.25rem;
+  transition: background 0.2s;
+}
+
+.btn-icon:hover {
+  background: #1a4b8c;
+}
+
+.btn-icon.btn-danger {
+  background: #4a1515;
+}
+
+.btn-icon.btn-danger:hover {
+  background: #8b2525;
+}
+
+.preview-link {
+  width: 50px;
+  height: 50px;
+  background: #0f3460;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gdrive-link {
+  color: #4fc3f7;
+  text-decoration: none;
+  font-size: 0.65rem;
+}
+
+.gdrive-link:hover {
+  text-decoration: underline;
+}
+
+.empty-state-hint {
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  color: #555;
+}
+
+/* Edit Modal */
+.edit-modal {
+  max-width: 500px;
+}
+
+.modal-subtitle {
+  color: #888;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.modal-form .settings-group {
+  margin-bottom: 1rem;
+}
+
+.modal-form .settings-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.modal-form .text-input {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  border: 1px solid #0f3460;
+  background: #1a1a2e;
+  color: #eee;
+  font-size: 0.875rem;
+}
+
+.modal-form select.text-input {
+  width: 100%;
+}
+
+.modal-form code {
+  background: #1a1a2e;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  color: #4fc3f7;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .filters {

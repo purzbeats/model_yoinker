@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Simple CSV converter (json2csv has ESM issues in serverless)
+// Simple CSV converter
 function toCSV(data: Record<string, unknown>[]): string {
   if (data.length === 0) return '';
   const headers = Object.keys(data[0]);
@@ -9,7 +9,6 @@ function toCSV(data: Record<string, unknown>[]): string {
     const values = headers.map(h => {
       const val = row[h];
       const str = val === null || val === undefined ? '' : String(val);
-      // Escape quotes and wrap in quotes if contains comma, quote, or newline
       if (str.includes(',') || str.includes('"') || str.includes('\n')) {
         return `"${str.replace(/"/g, '""')}"`;
       }
@@ -18,6 +17,19 @@ function toCSV(data: Record<string, unknown>[]): string {
     csvRows.push(values.join(','));
   }
   return csvRows.join('\n');
+}
+
+// Wrap handler to catch all errors
+async function safeHandler(req: VercelRequest, res: VercelResponse) {
+  try {
+    return await mainHandler(req, res);
+  } catch (error) {
+    console.error('Unhandled error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 }
 
 // ==================== Types ====================
@@ -112,7 +124,7 @@ function sanitizeModelName(name: string): string {
     .replace(/_+/g, '_');
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function mainHandler(req: VercelRequest, res: VercelResponse) {
   const { url, method } = req;
   const path = url?.split('?')[0] || '';
 
@@ -404,3 +416,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
+
+export default safeHandler;

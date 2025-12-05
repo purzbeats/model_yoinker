@@ -723,6 +723,14 @@
                   {{ mymodels.bulkEdit ? 'Apply to Selected' : 'Save' }}
                 </button>
                 <button type="button" @click="closeEditModal" class="btn-secondary">Cancel</button>
+                <button
+                  v-if="mymodels.bulkEdit"
+                  type="button"
+                  @click="deleteSelectedModels"
+                  class="btn-danger-full"
+                >
+                  Delete Selected ({{ mymodels.selectedIndices.length }})
+                </button>
               </div>
             </form>
           </div>

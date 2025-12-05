@@ -802,6 +802,19 @@ createApp({
       }
     }
 
+    function deleteSelectedModels() {
+      const count = mymodels.value.selectedIndices.length;
+      if (confirm(`Are you sure you want to delete ${count} selected model(s)?`)) {
+        // Sort indices in descending order to delete from end first (preserves indices)
+        const sortedIndices = [...mymodels.value.selectedIndices].sort((a, b) => b - a);
+        sortedIndices.forEach((index) => {
+          mymodels.value.models.splice(index, 1);
+        });
+        mymodels.value.selectedIndices = [];
+        closeEditModal();
+      }
+    }
+
     function exportMyModels() {
       const output = {
         models: mymodels.value.models,
@@ -1115,6 +1128,7 @@ createApp({
       closeEditModal,
       saveEdit,
       deleteModel,
+      deleteSelectedModels,
       exportMyModels,
 
       // Shared utilities

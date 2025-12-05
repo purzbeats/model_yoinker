@@ -819,6 +819,22 @@ main {
   background: #8b2525;
 }
 
+.btn-danger-full {
+  background: #8b2525;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  margin-left: auto;
+  transition: background 0.2s;
+}
+
+.btn-danger-full:hover {
+  background: #b33030;
+}
+
 .preview-link {
   width: 50px;
   height: 50px;
